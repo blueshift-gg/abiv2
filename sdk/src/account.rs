@@ -179,6 +179,25 @@ impl Account {
         self.transaction_account().data.as_mut_slice()
     }
 
+    /// Return a raw pointer to the account's data.
+    ///
+    /// Unlike [`borrow_unchecked_mut`](Self::borrow_unchecked_mut), this does
+    /// not construct a slice, so it avoids the volatile read of the data
+    /// length. The caller gets the data pointer only -- no length, no borrow
+    /// tracking. Use when the data length is already known (or irrelevant) and
+    /// the extra length load would be wasted work.
+    ///
+    /// # Safety
+    ///
+    /// Same contract as [`borrow_unchecked_mut`](Self::borrow_unchecked_mut):
+    /// the caller must ensure no other borrow of the same account data is live
+    /// for as long as the pointer is used, and must not read or write beyond
+    /// the account's data length.
+    #[inline(always)]
+    pub unsafe fn data_ptr(&self) -> *mut u8 {
+        self.transaction_account().data.ptr as *mut u8
+    }
+
     /// Checks whether an immutable reference can be created for the account
     /// data, failing if the account is already mutably borrowed or there
     /// are not enough immutable borrows available.
@@ -188,7 +207,7 @@ impl Account {
         //
         // SAFETY: The `borrow_state` pointer is valid under `Account`'s
         // runtime memory invariants.
-        if unsafe { *self.borrow_state() } >= MAX_IMMUTABLE_BORROWS {
+        if crate::hint::unlikely(unsafe { *self.borrow_state() } >= MAX_IMMUTABLE_BORROWS) {
             return Err(ProgramError::AccountBorrowFailed);
         }
 
@@ -201,7 +220,7 @@ impl Account {
     fn check_borrow_mut(&self) -> Result<(), ProgramError> {
         // SAFETY: The `borrow_state` pointer is valid under `Account`'s
         // runtime memory invariants.
-        if unsafe { *self.borrow_state() } != NOT_BORROWED {
+        if crate::hint::unlikely(unsafe { *self.borrow_state() } != NOT_BORROWED) {
             return Err(ProgramError::AccountBorrowFailed);
         }
 
@@ -267,7 +286,7 @@ impl Account {
     /// Resize (either truncating or zero-extending) the account's data.
     #[inline(always)]
     pub fn resize(&mut self, new_len: usize) -> ProgramResult {
-        if self.is_borrowed() {
+        if crate::hint::unlikely(self.is_borrowed()) {
             return Err(ProgramError::AccountBorrowFailed);
         }
 

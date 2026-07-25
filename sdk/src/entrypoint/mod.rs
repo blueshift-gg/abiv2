@@ -3,7 +3,7 @@ mod allocator;
 pub use allocator::{BumpAllocator, DenyAllocator};
 use {
     crate::{account::Account, context::InstructionContext},
-    solana_program_error::{ProgramError, ProgramResult},
+    solana_program_error::ProgramResult,
 };
 
 pub const SUCCESS: u64 = 0;
@@ -63,15 +63,12 @@ where
 {
     match process_instruction(context, accounts, instruction_data) {
         Ok(()) => SUCCESS,
-        Err(e) => program_error_to_u64(e),
+        // Inline the conversion at the call site. Because each `?`/`Err(..)`
+        // site constructs a concrete `ProgramError`, inlining lets the compiler
+        // constant-fold the discriminant and emit a single `lddw` per reachable
+        // error instead of the full `From<ProgramError>` match table.
+        Err(e) => e.into(),
     }
-}
-
-/// This function is marked as `#[cold]` to move the error conversion from the
-/// "hot path" of the entrypoint.
-#[inline(never)]
-fn program_error_to_u64(error: ProgramError) -> u64 {
-    error.into()
 }
 
 #[doc(hidden)]
