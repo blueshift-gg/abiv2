@@ -6,6 +6,7 @@ members = [
     "programs/account-data",
     "programs/account-resize",
     "programs/assign-owner",
+    "programs/counter",
     "programs/cpi",
     "programs/deny-allocator",
     "programs/return-data",
