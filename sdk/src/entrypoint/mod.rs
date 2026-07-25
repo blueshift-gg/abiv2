@@ -1,6 +1,8 @@
 mod allocator;
 
 pub use allocator::{BumpAllocator, DenyAllocator};
+use crate::hint::cold_path;
+
 use {
     crate::{account::Account, context::InstructionContext},
     solana_program_error::ProgramResult,
@@ -67,7 +69,10 @@ where
         // site constructs a concrete `ProgramError`, inlining lets the compiler
         // constant-fold the discriminant and emit a single `lddw` per reachable
         // error instead of the full `From<ProgramError>` match table.
-        Err(e) => e.into(),
+        Err(e) => {
+            cold_path();
+            e.into()
+        }
     }
 }
 

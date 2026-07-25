@@ -9,7 +9,7 @@ use {
     solana_program_error::ProgramError,
 };
 
-const PROGRAM_ID: Address = Address::from_str_const("counter111111111111111111111111111111111111");
+const PROGRAM_ID: Address = Address::from_str_const("counterasm111111111111111111111111111111111");
 
 fn instruction(program_id: &Address, is_writable: bool) -> (Instruction, Vec<(Address, Account)>) {
     let counter = Address::new_unique();
